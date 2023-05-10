@@ -153,7 +153,8 @@ object_generator::object_generator(size_t n_key_iterators/*= OBJECT_GENERATOR_KE
     m_value_buffer(NULL),
     m_random_fd(-1),
     m_value_buffer_size(0),
-    m_value_buffer_mutation_pos(0)
+    m_value_buffer_mutation_pos(0),
+    m_hit_rate(0.0)
 {
     m_next_key.resize(n_key_iterators, 0);
 
@@ -175,7 +176,8 @@ object_generator::object_generator(const object_generator& copy) :
     m_value_buffer(NULL),
     m_random_fd(-1),
     m_value_buffer_size(0),
-    m_value_buffer_mutation_pos(0)
+    m_value_buffer_mutation_pos(0),
+    m_hit_rate(copy.m_hit_rate)
 {
     if (m_data_size_type == data_size_weighted &&
         m_data_size.size_list != NULL) {
@@ -382,10 +384,13 @@ unsigned long long object_generator::get_key_index(int iter)
     return k;
 }
 
-const char* object_generator::get_key(int iter, unsigned int *len)
+const char* object_generator::get_key(int iter, unsigned int *len, bool is_set)
 {
     unsigned int l;
     m_key_index = get_key_index(iter);
+    if (is_set && m_hit_rate > 0) {
+        m_key_index = m_key_index * m_hit_rate;
+    }
 
     // format key
     l = snprintf(m_key_buffer, sizeof(m_key_buffer)-1,
@@ -395,10 +400,10 @@ const char* object_generator::get_key(int iter, unsigned int *len)
     return m_key_buffer;
 }
 
-data_object* object_generator::get_object(int iter)
+data_object* object_generator::get_object(int iter, bool is_set)
 {
     // compute key
-    (void) get_key(iter, NULL);
+    (void) get_key(iter, NULL, is_set);
 
     // compute value
     unsigned int new_size = 0;
@@ -458,6 +463,12 @@ unsigned int object_generator::get_expiry() {
 
     return expiry;
 }
+
+void object_generator::set_hit_rate(double hit_rate)
+{
+    m_hit_rate = hit_rate;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////
 

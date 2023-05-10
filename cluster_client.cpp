@@ -308,20 +308,23 @@ bool cluster_client::hold_pipeline(unsigned int conn_id) {
     return false;
 }
 
-bool cluster_client::get_key_for_conn(unsigned int conn_id, int iter, unsigned long long* key_index) {
+bool cluster_client::get_key_for_conn(unsigned int conn_id, int iter, unsigned long long* key_index, bool is_set = false) {
     // first check if we already have key in pool
-    if (!m_key_index_pools[conn_id]->empty()) {
+    /* if (!m_key_index_pools[conn_id]->empty()) {
         *key_index = m_key_index_pools[conn_id]->front();
         m_key_len = snprintf(m_key_buffer, sizeof(m_key_buffer)-1, "%s%llu", m_obj_gen->get_key_prefix(), *key_index);
 
         m_key_index_pools[conn_id]->pop();
         return true;
-    }
+    } */
 
     // keep generate key till it match for this connection, or requests reached
     while (true) {
         // generate key
         *key_index = m_obj_gen->get_key_index(iter);
+        if (is_set && m_obj_gen->m_hit_rate > 0) {
+            *key_index = *key_index * m_obj_gen->m_hit_rate;
+        }
         m_key_len = snprintf(m_key_buffer, sizeof(m_key_buffer)-1, "%s%llu", m_obj_gen->get_key_prefix(), *key_index);
 
         unsigned int hslot = calc_hslot_crc16_cluster(m_key_buffer, m_key_len);
@@ -333,7 +336,7 @@ bool cluster_client::get_key_for_conn(unsigned int conn_id, int iter, unsigned l
         }
 
         // handle key for other connection
-        unsigned int other_conn_id = m_slot_to_shard[hslot];
+       /*  unsigned int other_conn_id = m_slot_to_shard[hslot];
 
         // in case we generated key for connection that is disconnected, 'slot to shard' map may need to be updated
         if (m_connections[other_conn_id]->get_connection_state() == conn_disconnected) {
@@ -354,7 +357,7 @@ bool cluster_client::get_key_for_conn(unsigned int conn_id, int iter, unsigned l
 
         // don't exceed requests
         if (m_config->requests > 0 && m_reqs_generated >= m_config->requests)
-            return false;
+            return false; */
     }
 }
 
@@ -382,7 +385,7 @@ void cluster_client::create_request(struct timeval timestamp, unsigned int conn_
         unsigned long long key_index;
 
         // get key
-        if (!get_key_for_conn(conn_id, obj_iter_type(m_config, 0), &key_index)) {
+        if (!get_key_for_conn(conn_id, obj_iter_type(m_config, 0), &key_index, true)) {
             return;
         }
 

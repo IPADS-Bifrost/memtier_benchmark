@@ -143,7 +143,8 @@ static void config_print(FILE *file, struct benchmark_config *cfg)
         "wait-ratio = %u:%u\n"
         "num-slaves = %u-%u\n"
         "wait-timeout = %u-%u\n"
-        "json-out-file = %s\n",
+        "json-out-file = %s\n"
+        "hit_rate = %f\n",
         cfg->server,
         cfg->port,
         cfg->unix_socket,
@@ -191,7 +192,7 @@ static void config_print(FILE *file, struct benchmark_config *cfg)
         cfg->wait_ratio.a, cfg->wait_ratio.b,
         cfg->num_slaves.min, cfg->num_slaves.max,
         cfg->wait_timeout.min, cfg->wait_timeout.max,
-        cfg->json_out_file);
+        cfg->json_out_file, cfg->hit_rate);
 }
 
 static void config_print_to_json(json_handler * jsonhandler, struct benchmark_config *cfg)
@@ -402,7 +403,8 @@ static int config_parse_args(int argc, char *argv[], struct benchmark_config *cf
         o_tls_cacert,
         o_tls_skip_verify,
         o_tls_sni,
-        o_hdr_file_prefix
+        o_hdr_file_prefix,
+        o_hit_rate
     };
 
     static struct option long_options[] = {
@@ -466,6 +468,7 @@ static int config_parse_args(int argc, char *argv[], struct benchmark_config *cf
         { "command",                    1, 0, o_command },
         { "command-key-pattern",        1, 0, o_command_key_pattern },
         { "command-ratio",              1, 0, o_command_ratio },
+        { "hit-rate",                   1, 0, o_hit_rate },
         { NULL,                         0, 0, 0 }
     };
 
@@ -851,6 +854,17 @@ static int config_parse_args(int argc, char *argv[], struct benchmark_config *cf
                     cfg->tls_sni = optarg;
                     break;
 #endif
+                case o_hit_rate: {
+                    endptr = NULL;
+                    cfg->hit_rate = strtod(optarg, &endptr);
+                    if (cfg->hit_rate<= 0 || !endptr || *endptr != '\0') {
+                        fprintf(stderr, "error: hit_rate must be greater than zero.\n");
+                        return -1;
+                    }
+                    if (cfg->hit_rate >= 1)
+                        cfg->hit_rate = 1;
+                    break;
+                }
             default:
                     return -1;
                     break;
@@ -1478,6 +1492,7 @@ int main(int argc, char *argv[])
         obj_gen->set_key_prefix(cfg.key_prefix);
         obj_gen->set_key_range(cfg.key_minimum, cfg.key_maximum);
     }
+    obj_gen->set_hit_rate(cfg.hit_rate);
     if (cfg.key_stddev>0 || cfg.key_median>0) {
         if (cfg.key_pattern[key_pattern_set]!='G' && cfg.key_pattern[key_pattern_get]!='G') {
             fprintf(stderr, "error: key-stddev and key-median are only allowed together with key-pattern set to G.\n");

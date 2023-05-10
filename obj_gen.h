@@ -110,10 +110,13 @@ protected:
     unsigned int m_value_buffer_size;
     unsigned int m_value_buffer_mutation_pos;
 
+    
+
     void alloc_value_buffer(void);
     void alloc_value_buffer(const char* copy_from);
     void random_init(void);
 public:
+    double m_hit_rate;
     object_generator(size_t n_key_iterators = OBJECT_GENERATOR_KEY_ITERATORS);
     object_generator(const object_generator& copy);
     virtual ~object_generator();
@@ -134,12 +137,13 @@ public:
     void set_random_seed(int seed);
 
     unsigned long long get_key_index(int iter);
-    virtual const char* get_key(int iter, unsigned int *len);
-    virtual data_object* get_object(int iter);
+    virtual const char* get_key(int iter, unsigned int *len, bool is_set=false);
+    virtual data_object* get_object(int iter, bool is_set=false);
 
     const char * get_key_prefix();
     const char* get_value(unsigned long long key_index, unsigned int *len);
     unsigned int get_expiry();
+    void set_hit_rate(double hit_rate);
 };
 
 class imported_keylist;

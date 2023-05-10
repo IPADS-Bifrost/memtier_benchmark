@@ -303,7 +303,7 @@ void client::create_request(struct timeval timestamp, unsigned int conn_id)
     // are we set or get? this depends on the ratio
     else if (m_set_ratio_count < m_config->ratio.a) {
         // set command
-        data_object *obj = m_obj_gen->get_object(obj_iter_type(m_config, 0));
+        data_object *obj = m_obj_gen->get_object(obj_iter_type(m_config, 0), true);
         unsigned int key_len;
         const char *key = obj->get_key(&key_len);
         unsigned int value_len;
@@ -437,7 +437,7 @@ void verify_client::create_request(struct timeval timestamp, unsigned int conn_i
     if (m_set_ratio_count < m_config->ratio.a) {
         // Prepare a GET request that will be compared against a previous
         // SET request.
-        data_object *obj = m_obj_gen->get_object(obj_iter_type(m_config, 0));
+        data_object *obj = m_obj_gen->get_object(obj_iter_type(m_config, 0), true);
         unsigned int key_len;
         const char *key = obj->get_key(&key_len);
         unsigned int value_len;
